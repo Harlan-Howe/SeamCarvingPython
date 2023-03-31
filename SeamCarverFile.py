@@ -20,10 +20,11 @@ class SeamCarver:
         """
         self.root = Tk()
         self.seam_list = []
-        self.sourceImagePanel = None
-        self.edgeImagePanel = None
-        self.seamImagePanel = None
-        self.resultImagePanel = None
+        self.original_image_panel = None
+        self.source_image_panel = None
+        self.edge_image_panel = None
+        self.seam_image_panel = None
+        self.result_image_panel = None
 
         frm_buttons = Frame(self.root)
         frm_images = Frame(self.root)
@@ -69,17 +70,21 @@ class SeamCarver:
         :return: None
         """
         self.source_cv_image = np.ones([50, 50, 3], dtype='uint8')
-        self.edge_cv_image = np.ones([50, 50, 3], dtype='uint8')
+        self.energy_image = np.ones([50, 50, 3], dtype='uint8')
         self.seam_cv_image = np.zeros([50, 50, 3], dtype="uint8")
         self.result_cv_image = np.zeros([50, 50, 3], dtype="uint8")
+
+        frm_org = Frame(master=frm_images, relief=RAISED, borderwidth=1)
+        lbl_org = Label(master=frm_org, text="Original")
+        lbl_org.pack(side="top")
 
         frm_source = Frame(master=frm_images, relief=RAISED, borderwidth=1)
         lbl_source = Label(master=frm_source, text="Source")
         lbl_source.pack(side="top")
 
-        frm_edges = Frame(master=frm_images, relief=RAISED, borderwidth=1)
-        lbl_edges = Label(master=frm_edges, text="Edges")
-        lbl_edges.pack(side="top")
+        frm_energy = Frame(master=frm_images, relief=RAISED, borderwidth=1)
+        lbl_energy = Label(master=frm_energy, text="Energy")
+        lbl_energy.pack(side="top")
 
         frm_seam = Frame(master=frm_images, relief=RAISED, borderwidth=1)
         lbl_seam = Label(master=frm_seam, text="Seam")
@@ -89,15 +94,17 @@ class SeamCarver:
         lbl_result = Label(master=frm_result, text="Result")
         lbl_result.pack(side="top")
 
-        self.sourceImagePanel = self.update_panel(self.sourceImagePanel, cvImage=self.source_cv_image,master=frm_source)
-        self.edgeImagePanel = self.update_panel(self.edgeImagePanel, cvImage=self.edge_cv_image, master=frm_edges)
-        self.seamImagePanel = self.update_panel(self.seamImagePanel, cvImage=self.seam_cv_image, master=frm_seam)
-        self.resultImagePanel = self.update_panel(self.resultImagePanel, cvImage=self.result_cv_image, master=frm_result)
+        self.original_image_panel = self.update_panel(self.original_image_panel, cvImage=self.source_cv_image, master=frm_org)
+        self.source_image_panel = self.update_panel(self.source_image_panel, cvImage=self.source_cv_image, master=frm_source)
+        self.edge_image_panel = self.update_panel(self.edge_image_panel, cvImage=self.energy_image, master=frm_energy)
+        self.seam_image_panel = self.update_panel(self.seam_image_panel, cvImage=self.seam_cv_image, master=frm_seam)
+        self.result_image_panel = self.update_panel(self.result_image_panel, cvImage=self.result_cv_image, master=frm_result)
 
-        frm_source.grid(row=0, column=0)
-        frm_edges.grid(row=0, column=1)
-        frm_seam.grid(row=1, column=0)
-        frm_result.grid(row=1, column=1)
+        frm_org.grid(row=0, column=0, rowspan=2)
+        frm_source.grid(row=0, column=1)
+        frm_energy.grid(row=0, column=2)
+        frm_seam.grid(row=1, column=1)
+        frm_result.grid(row=1, column=2)
 
     def update_panel(self,panel:Label, cvImage:np.ndarray, master = None)->Label:
         """
@@ -143,10 +150,8 @@ class SeamCarver:
         path = filedialog.askopenfilename(message="Find the source image.")
         if len(path)>0:
             self.source_cv_image = cv2.imread(path)
-            self.edge_cv_image = cv2.Sobel(self.source_cv_image,ddepth=cv2.CV_8U,dx=1,dy=0,ksize=3, borderType=cv2.BORDER_REFLECT)
-            self.edge_cv_image = cv2.cvtColor(self.edge_cv_image, cv2.COLOR_BGR2GRAY)
-            self.update_panel(self.sourceImagePanel,self.source_cv_image)
-            self.update_panel(self.edgeImagePanel,self.edge_cv_image)
+            self.update_source_and_energy()
+            self.update_panel(self.original_image_panel, self.source_cv_image)
 
 
     def do_find_seam(self):
@@ -155,7 +160,7 @@ class SeamCarver:
         :return: None
         """
         self.seam_list, self.seam_cv_image = self.find_seam()
-        self.update_panel(self.seamImagePanel,self.seam_cv_image)
+        self.update_panel(self.seam_image_panel, self.seam_cv_image)
 
     def do_remove_seam(self):
         """
@@ -171,7 +176,7 @@ class SeamCarver:
         for r in range(self.source_cv_image.shape[0]):
             self.result_cv_image[r,self.seam_list[r]:-1] = self.result_cv_image[r,self.seam_list[r]+1:]
         self.result_cv_image = self.result_cv_image[:,:-1]
-        self.update_panel(self.resultImagePanel,self.result_cv_image)
+        self.update_panel(self.result_image_panel, self.result_cv_image)
 
     def do_copy_to_source(self):
         """
@@ -180,11 +185,15 @@ class SeamCarver:
         :return: None
         """
         self.source_cv_image = self.result_cv_image.copy()
-        self.edge_cv_image = cv2.Sobel(self.source_cv_image, ddepth=cv2.CV_8U, dx=1, dy=0, ksize=3,
-                                       borderType=cv2.BORDER_REFLECT)
-        self.edge_cv_image = cv2.cvtColor(self.edge_cv_image, cv2.COLOR_BGR2GRAY)
-        self.update_panel(self.sourceImagePanel, self.source_cv_image)
-        self.update_panel(self.edgeImagePanel, self.edge_cv_image)
+        self.update_source_and_energy()
+
+    def update_source_and_energy(self):
+        self.energy_image = cv2.Sobel(self.source_cv_image.astype(float), ddepth=cv2.CV_16S, dx=1, dy=0, ksize=3,
+                                      borderType=cv2.BORDER_REFLECT)
+        self.energy_image = (np.abs(self.energy_image)).astype(np.uint8)
+        self.energy_image = cv2.cvtColor(self.energy_image, cv2.COLOR_BGR2GRAY)
+        self.update_panel(self.source_image_panel, self.source_cv_image)
+        self.update_panel(self.edge_image_panel, self.energy_image)
 
     def do_cycle(self):
         """
@@ -214,7 +223,7 @@ class SeamCarver:
         :return: an array of integers, listing the x-coordinate of the seam at each row (from top to bottom); also a
         cv2 image describing the seam, to display.
         """
-        cumulative = np.zeros(self.edge_cv_image.shape, dtype=float)
+        cumulative = np.zeros(self.energy_image.shape, dtype=float)
 
         #---------------------
         #TODO: Build up the cumulative grid, showing the least total energy to reach each pixel from the top edge of the
@@ -235,7 +244,7 @@ class SeamCarver:
         #   self.seam_cv_image to be red ([0,0,255])  - backwards from what you are used to; open CV is BGR, not RGB.
         #  - also, add the x value to the seam_values list, so that the first item on the list is the x coordinate of the seam
         #    on the top row, the next value on the list is the x coordinate of the next row and so forth.
-        
+
 
         #------------------------
 
