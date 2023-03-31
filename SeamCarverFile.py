@@ -1,19 +1,19 @@
 import numpy as np
 import cv2
-import math
+import math # you may want this... I don't know.
 from tkinter import *
 from tkinter import filedialog
-from typing import List,Tuple
+from typing import List, Tuple
 
 from PIL import Image, ImageTk
+
 
 class SeamCarver:
 
     def __init__(self):
-        self.buildGUI()
+        self.build_GUI()
 
-
-    def buildGUI(self):
+    def build_GUI(self):
         """
         sets up the window and the buttons' commands
         :return:
@@ -219,40 +219,82 @@ class SeamCarver:
 
     def find_seam(self)->Tuple[List[int],np.ndarray]:
         """
-        Use Dynamic Programming to find the seam from the top of the image to the bottom that has the least total energy.
+        Uses Dynamic Programming to find the seam from the top of the image to the bottom that has the least total energy.
         :return: an array of integers, listing the x-coordinate of the seam at each row (from top to bottom); also a
         cv2 image describing the seam, to display.
         """
-        cumulative = np.zeros(self.energy_image.shape, dtype=float)
+        cumulative = self.generate_cumulative_grid()
 
-        #---------------------
-        #TODO: Build up the cumulative grid, showing the least total energy to reach each pixel from the top edge of the
-        # self.edge_cv_image.
-        #   make sure you have a starting point, and a recursive statement.
+        seam_values = self.find_seam_locations(cumulative)
 
-
-
-        #---------------------
-        # Finds the x-position of the minimum value in the bottom row of "cumulative." (This is faster than looping
-        # through it, yourself.
-        minstart_x = np.argmin(cumulative[-1,:])
-
-        seam_image = self.source_cv_image.copy()
-        seam_values = []
-
-        # TODO: work back up the cumulative image to find the path. Each step of the way, set the corresponding pixel in
-        #   self.seam_cv_image to be red ([0,0,255])  - backwards from what you are used to; open CV is BGR, not RGB.
-        #  - also, add the x value to the seam_values list, so that the first item on the list is the x coordinate of the seam
-        #    on the top row, the next value on the list is the x coordinate of the next row and so forth.
-
-
-        #------------------------
+        seam_image = self.build_seam_image_with_path(seam_values)
 
         return seam_values, seam_image
 
 
 
+    def generate_cumulative_grid(self)->np.ndarray:
+        """
+        Based on the information in self.energy_image, constructs the cumulative grid
+        :return: the cumulative grid that goes with this energy grid.
+        """
+        # start the cumuative grid off as a grid of zeros, the same size as the energy grid, with a copy of the top row
+        #    of energy in its top row. So if "energy" is
+        #    1 2 3 4
+        #    5 6 7 8
+        #    9 1 2 3
+        #    4 5 6 7
+        # then "cumulative" _starts_off_ as
+        #    1 2 3 4
+        #    0 0 0 0
+        #    0 0 0 0
+        #    0 0 0 0
 
+        cumulative = np.zeros(self.energy_image.shape, dtype=float)
+        cumulative[0, :] = self.energy_image[0, :]
+
+        #TODO: Fill in the cumulative grid, showing the least total energy to reach each pixel from the top edge (row 0)
+        # of the self.edge_cv_image. Each pixel is based on cumulative information from the row above it (row-1) and
+        # the value of the energy for this pixel.
+
+
+
+        return cumulative
+
+    def find_seam_locations(self, cumulative:np.ndarray)->List[int]:
+        """
+        Given a filled-in cumulative grid, finds the vertical seam corresponding to the least energy used.
+        :param cumulative: a filled-in cumulative grid
+        :return: a list of the column numbers for seam location of each row. So seam_values = [ 12, 13, 13, 14, 15, 14]
+        would correspond to a seam consisting of (r, c) points (0, 12), (1, 13), (2, 13), (3, 14), (4, 15), (5, 14).
+        """
+
+        # Finds the index of the lowest item in the bottom row of the graphic.
+        minstart_x = np.argmin(cumulative[-1, :])
+
+
+        # TODO: work back up the cumulative image to find the path. Add the x value to the seam_values list, so that the
+        #  first item on the list is the x coordinate of the seam on the top row, the next value on the list is the
+        #  x coordinate of the next row and so forth. The minstart_x that was calculated above will be the last number
+        #  on the list.
+        seam_values = []
+
+
+        return seam_values
+
+    def build_seam_image_with_path(self, seam_values: List[int]) -> None:
+        """
+        given a list of the column numbers for a path from the top row to the bottom row, creates an image with a bw
+        copy of the source and a red line representing the seam.
+        :param seam_values: a list of integers, corresponding to the horizontal (col) location for each point on a line
+        extending from the top of the image to the bottom. (The length of this list should be the same as the height
+        of the image.)
+        :return: new seam image.
+        """
+        seam_image = self.source_cv_image.copy()
+        for r in range(seam_image.shape[0]):
+            seam_image[r, seam_values[r]] = (0, 0, 255)
+        return seam_image
 
 if __name__ == "__main__":
     sc = SeamCarver()
