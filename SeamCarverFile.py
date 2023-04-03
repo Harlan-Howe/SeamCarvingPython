@@ -274,6 +274,7 @@ class SeamCarver:
         """
 
         # Finds the index of the lowest item in the bottom row of the graphic.
+        # I THINK YOU'LL FIND THIS HANDY.
         minstart_x: int = int(np.argmin(cumulative[-1, :]))
 
         # TODO: work back up the cumulative image to find the path. Add the x value to the seam_values list, so that the
