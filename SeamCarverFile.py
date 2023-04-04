@@ -5,7 +5,7 @@ from tkinter import *
 from tkinter import filedialog
 from typing import List, Tuple
 
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk #Must install "Pillow"
 from numpy import ndarray
 
 from CarverFile import Carver
@@ -38,10 +38,10 @@ class SeamCarver:
         self.original_image_panel = None
         self.seam_list = None
         self.root = None
-
+        self.carver = Carver()
         self.build_GUI()
 
-        self.carver = Carver()
+
 
     def build_GUI(self) -> None:
         """
@@ -181,24 +181,23 @@ class SeamCarver:
         The user has just pressed the "Find Seam" button. Calculate the seam location and update the "Seam" panel.
         :return: None
         """
-        cumulative = carver.generate_cumulative_grid(self.energy_image)
+        cumulative = self.carver.generate_cumulative_energy_grid(self.energy_image)
 
-        self.seam_values = carver.find_seam_locations(self.energy_image,
+        self.seam_values = self.carver.find_seam_locations(self.energy_image,
                                                cumulative)
 
-        self.seam_cv_image = carver.build_seam_image_with_path(self.source_cv_image,
+        self.seam_cv_image = self.carver.build_seam_image_with_path(self.source_cv_image,
                                                                self.seam_values)
 
         self.update_panel(self.seam_image_panel, self.seam_cv_image)
 
-        r
     def do_remove_seam(self):
         """
         The user has just pressed the "remove seam" button. Create the image for the "result" panel - one pixel narrower
         than the source image, as it has had the seam pixels removed.
         :return: None
         """
-        self.result_cv_image = carver.remove_seam_from_image(self.seam_values, self.source_cv_image)
+        self.result_cv_image = self.carver.remove_seam_from_image(self.seam_values, self.source_cv_image)
         self.update_panel(self.result_image_panel, self.result_cv_image)
 
     def do_copy_to_source(self):

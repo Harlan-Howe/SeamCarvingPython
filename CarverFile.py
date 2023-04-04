@@ -1,12 +1,12 @@
 import numpy as np
 import cv2
-import typing
+from typing import List, Tuple
 
 class Carver:
 
     def __init__(self):
         pass
-    def calculate_energy(self,, source_image) -> np.ndarray:
+    def calculate_energy(self, source_image) -> np.ndarray:
         energy_image = cv2.Sobel(source_image.astype(float),
                                       ddepth=cv2.CV_16S,
                                       dx=1,
@@ -15,16 +15,7 @@ class Carver:
                                       borderType=cv2.BORDER_REFLECT)
         energy_image = (np.abs(energy_image)).astype(np.uint8)
         energy_image = cv2.cvtColor(energy_image, cv2.COLOR_BGR2GRAY)
-        return senergy_image
-
-    def calculate_cumulative_energy(self, energy_image: np.ndarray) -> np.ndarray:
-        cumulative_energy_image = self.generate_cumulative_energy_grid(energy_image)
-
-        seam_values = self.find_seam_locations(cumulative)
-
-        self.build_seam_image_with_path(seam_values)
-
-        self.update_panel(self.seam_image_panel, self.seam_cv_image)
+        return energy_image
 
     def generate_cumulative_energy_grid(self, energy_image) -> np.ndarray:
         """
@@ -50,6 +41,9 @@ class Carver:
         #  of the self.edge_cv_image. Each pixel is based on cumulative information from the row above it (row-1) and
         #  the value of the energy for this pixel.
 
+
+
+
         return cumulative_energy_image
 
     def find_seam_locations(self,
@@ -65,13 +59,14 @@ class Carver:
 
         # Finds the index of the lowest item in the bottom row of the graphic.
         # I THINK YOU'LL FIND THIS HANDY.
-        minstart_x: int = int(np.argmin(cumulative[-1, :]))
+        minstart_x: int = int(np.argmin(cumulative_energy_image[-1, :]))
 
         # TODO: work back up the cumulative image to find the path. Add the x value to the seam_values list, so that the
         #  first item on the list is the x coordinate of the seam on the top row, the next value on the list is the
         #  x coordinate of the next row and so forth. The minstart_x that was calculated above will be the last number
         #  on the list.
         seam_values = []
+
 
         return seam_values
 
@@ -86,7 +81,10 @@ class Carver:
         of the image.)
         :return: new seam image.
         """
-        seam_image = self.source_cv_image.copy()
+        if len(seam_values) != source_image.shape[0]:
+            raise RuntimeError(f"Error - seam list is different height than image. " \
+                                 f"{len(seam_values)=}\t{source_image.shape[0]=}")
+        seam_image = source_image.copy()
         for r in range(seam_image.shape[0]):
             seam_image[r, seam_values[r]] = (0, 0, 255)
         return seam_image
@@ -95,7 +93,7 @@ class Carver:
                                      source_image: np.ndarray) -> np.ndarray:
         if len(seam_values) != source_image.shape[0]:
             raise RuntimeError(f"Error - seam list is different height than image. " \
-                                 "{len(seam_values)=}\t{source_image.shape[0]=}")
+                                 f"{len(seam_values)=}\t{source_image.shape[0]=}")
 
         result_image = source_image.copy()
         for r in range(source_image.shape[0]):
